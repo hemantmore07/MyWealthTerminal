@@ -11,15 +11,14 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- SIDEBAR ---
-with st.sidebar:
-    st.header("⚙️ Terminal Controls")
-    if st.button("🔄 Refresh Live Data"):
-        st.clear_cache()
-        st.rerun()
-
 # --- TITLE & HEADER ---
 st.title("🏛️ Hemant's Live Institutional Wealth Terminal")
+
+# --- MAIN REFRESH BUTTON (Front & Center!) ---
+# This button clears the data cache correctly without crashing
+if st.button("🔄 REFRESH LIVE MARKET DATA", type="secondary"):
+    st.cache_data.clear()
+    st.rerun()
 
 # --- EXPANDED 15 STOCK WATCHLIST ---
 STOCK_TICKERS = {
