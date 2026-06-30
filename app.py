@@ -218,7 +218,7 @@ with st.container(border=True):
 with st.container(border=True):
     st.markdown("### 🧪 MULTI-DAY PERMANENT SIMULATION PORTFOLIO")
     
-    # Order Execution Form with Direct Asset Selector Option Inside
+    # Order Execution Form
     exec_col1, exec_col2, exec_col3, exec_col4 = st.columns([1.2, 1, 1, 1])
     
     with exec_col1:
@@ -226,141 +226,8 @@ with st.container(border=True):
         
     if not df.empty and portfolio_stock_select in df['Stock'].values:
         active_stock_data = df[df['Stock'] == portfolio_stock_select].iloc[0]
+        current_ticker_live_price = float(active_stock_data['Live Price'])
         
         with exec_col2:
-            sim_price = st.number_input("Execution Entry Price (₹)", value=float(active_stock_data['Live Price']), step=0.5, key="portfolio_price_input")
-        with exec_col3:
-            # Sizing calculation based on selection context
-            allowed_loss = user_capital * (risk_pct / 100.0)
-            risk_per_share = max((float(active_stock_data['Live Price']) - float(active_stock_data['Risk Exit (SL)'])), 0.01)
-            calculated_shares = max(int(allowed_loss // risk_per_share), 1)
-            sim_qty = st.number_input("Execution Order Quantity", min_value=1, value=calculated_shares, step=1, key="portfolio_qty_input")
-        with exec_col4:
-            st.write("##")
-            if st.button("🚀 Add Asset to Portfolio", use_container_width=True, type="primary"):
-                new_trade = {
-                    "Stock": portfolio_stock_select,
-                    "Date": datetime.now().strftime("%d-%b-%Y"),
-                    "Timestamp": datetime.now().strftime("%H:%M:%S"),
-                    "Entry Price": float(sim_price),
-                    "Quantity": int(sim_qty),
-                    "Total Outlay": float(sim_price * sim_qty),
-                    "Stop Loss": float(active_stock_data['Risk Exit (SL)'])
-                }
-                st.session_state.demo_portfolio.append(new_trade)
-                save_permanent_portfolio(st.session_state.demo_portfolio)
-                st.success(f"Successfully Added holding record for {portfolio_stock_select}!")
-                st.rerun()
-
-    # Active Multi-Asset Open Portfolio Ledger
-    st.markdown("#### 💼 Active Multi-Day Account Holdings Balance")
-    if st.session_state.demo_portfolio:
-        indices_to_drop = []
-        total_portfolio_value = 0.0
-        total_portfolio_cost = 0.0
-        
-        for position in st.session_state.demo_portfolio:
-            t = position["Stock"]
-            total_portfolio_cost += position["Total Outlay"]
-            total_portfolio_value += (live_price_map.get(t, position["Entry Price"]) * position["Quantity"])
-            
-        net_portfolio_pnl = total_portfolio_value - total_portfolio_cost
-        net_portfolio_pct = (net_portfolio_pnl / total_portfolio_cost * 100) if total_portfolio_cost > 0 else 0.0
-        
-        m_c1, m_c2, m_c3 = st.columns(3)
-        m_c1.metric("Total Portfolio Invested Capital", f"₹{total_portfolio_cost:,.2f}")
-        m_c2.metric("Current Live Portfolio Value", f"₹{total_portfolio_value:,.2f}")
-        m_c3.metric("Net Cumulative Strategy P&L", f"₹{net_portfolio_pnl:,.2f}", f"{net_portfolio_pct:+.2f}%")
-        st.write("---")
-
-        for index, position in enumerate(st.session_state.demo_portfolio):
-            ticker = position["Stock"]
-            current_live_price = live_price_map.get(ticker, position["Entry Price"])
-            total_current_value = current_live_price * position["Quantity"]
-            unrealized_pnl = total_current_value - position["Total Outlay"]
-            pnl_pct = (unrealized_pnl / position["Total Outlay"]) * 100
-            
-            p_col1, p_col2, p_col3, p_col4, p_col5 = st.columns([1, 1, 1, 1.5, 1])
-            p_col1.markdown(f"**{ticker}** <br><span style='font-size:11px;color:grey;'>Bought {position['Date']}</span>", unsafe_allow_html=True)
-            p_col2.metric("Size & Cost", f"{position['Quantity']} Shrs", f"₹{position['Total Outlay']:,.2f}", delta_color="off")
-            p_col3.metric("Live Price", f"₹{current_live_price:,.2f}", f"Entry: ₹{position['Entry Price']:,.2f}", delta_color="off")
-            p_col4.metric("Unrealized P&L", f"₹{unrealized_pnl:,.2f}", f"{pnl_pct:+.2f}%", delta_color="normal")
-            
-            with p_col5:
-                st.write("")
-                if st.button("🔄 Square Off / Sell", key=f"exit_{index}", use_container_width=True):
-                    indices_to_drop.append(index)
-                    st.toast(f"Sold out position in {ticker} at live price.")
-        
-        if indices_to_drop:
-            for idx in sorted(indices_to_drop, reverse=True):
-                st.session_state.demo_portfolio.pop(idx)
-            save_permanent_portfolio(st.session_state.demo_portfolio)
-            st.rerun()
-    else:
-        st.info("Your multi-day portfolio tracker is empty. Select an asset above to build a custom portfolio layout.")
-
-# --- DATA MATRIX GRID TABS ---
-st.markdown("### 🖥️ Global System Watchlist Grid")
-tab_all, tab_buy, tab_watch, tab_psych = st.tabs([
-    "📋 Master Engine Matrix", "🟢 Active Quant Signals", "🟣 Continuous Monitor", "🧠 Top 1% Execution Rule"
-])
-
-def display_styled_dataframe(dataframe):
-    if dataframe.empty:
-        return None
-    return dataframe.style.format({
-        "Live Price": "₹{:,.2f}",
-        "Quant Floor (Buy)": "₹{:,.2f}",
-        "Risk Exit (SL)": "₹{:,.2f}",
-        "Real RSI (14)": "{:.1f}"
-    })
-
-with tab_all:
-    if not df.empty:
-        st.dataframe(display_styled_dataframe(df), use_container_width=True, hide_index=True)
-    else:
-        st.info("No master asset records matching pipeline vectors available.")
-
-with tab_buy:
-    if not df.empty:
-        buy_filtered_df = df[df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])]
-        if not buy_filtered_df.empty:
-            st.dataframe(display_styled_dataframe(buy_filtered_df), use_container_width=True, hide_index=True)
-        else:
-            st.info("No active actionable signals triggered right now.")
-    else:
-        st.info("Empty matrix node queues.")
-
-with tab_watch:
-    if not df.empty:
-        watch_filtered_df = df[df['Engine Verdict'] == "🟣 MONITOR"]
-        if not watch_filtered_df.empty:
-            st.dataframe(display_styled_dataframe(watch_filtered_df), use_container_width=True, hide_index=True)
-        else:
-            st.info("No monitor vectors logged.")
-    else:
-        st.info("Empty matrix node queues.")
-
-with tab_psych:
-    with st.container(border=True):
-        st.markdown("### 🧠 The Top 1% Pre-Trade Execution Checklist")
-        c1, c2 = st.columns(2)
-        with c1:
-            check_math = st.checkbox("🎯 1. Mathematical Alignment: Stock is strictly at the Quant Floor or Near Trigger.")
-            check_sl = st.checkbox("🛡️ 2. Immutable Stop Loss: My Risk Exit is locked in.")
-            check_size = st.checkbox("📊 3. Sizing Verification: I am using the Risk Accountant recommended size.")
-        with c2:
-            check_boredom = st.checkbox("⏳ 4. Boredom Audit: I am placing this trade purely for mathematical edge.")
-            check_scaling = st.checkbox("📈 5. Strategy Rule: Cut losses fast, protect account equity.")
-
-st.write("---")
-col_chart, col_news = st.columns([2, 1])
-with col_chart:
-    if not raw_market_batch.empty and portfolio_stock_select in STOCK_TICKERS:
-        chart_df = raw_market_batch[STOCK_TICKERS[portfolio_stock_select]].dropna().tail(30)
-        if not chart_df.empty:
-            rf = (raw_market_batch[STOCK_TICKERS[portfolio_stock_select]]['Close'].rolling(20).mean() - (1.5 * raw_market_batch[STOCK_TICKERS[portfolio_stock_select]]['Close'].rolling(20).std())).tail(30)
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df['Close'], name="Live Close Price", line=dict(color='#58a6ff', width=2)))
-            fig
+            # We display the price dynamically as text so it always changes automatically with your dropdown select box
+            st.markdown(f"**Live Market Entry Price**<br><span style='font-size:20
