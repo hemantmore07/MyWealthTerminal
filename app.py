@@ -201,7 +201,6 @@ with tab_watch:
     watch_df = df[df['Engine Verdict'] == "🟣 MONITOR"]
     st.dataframe(display_styled_dataframe(watch_df), use_container_width=True, hide_index=True)
 
-# --- NEW PSYCHOLOGY RULES TAB ---
 with tab_psych:
     st.markdown("### 🧠 The Top 1% Pre-Trade Execution Checklist")
     st.markdown("*Institutional traders do not trade on feeling. Run through this verification protocol before opening any position.*")
@@ -220,4 +219,50 @@ with tab_psych:
     else:
         st.warning("⚠️ PROTOCOL LOCKED: Please review and check all 5 professional execution rules before initializing an entry.")
 
-st.write("---
+st.write("---")
+
+# --- 📊 LIVE CHARTING & NEWS HUB COMPONENT ---
+col_chart, col_news = st.columns([2, 1])
+
+with col_chart:
+    st.markdown(f"#### 📊 Technical Data Stream: {selected_stock}")
+    if not raw_market_batch.empty and selected_stock in STOCK_TICKERS:
+        ticker_symbol = STOCK_TICKERS[selected_stock]
+        chart_df = raw_market_batch[ticker_symbol].dropna().tail(30)
+        
+        if not chart_df.empty:
+            rolling_mean = raw_market_batch[ticker_symbol]['Close'].rolling(20).mean()
+            rolling_std = raw_market_batch[ticker_symbol]['Close'].rolling(20).std()
+            rolling_floor = (rolling_mean - (1.5 * rolling_std)).tail(30)
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df['Close'], name="Live Close Price", line=dict(color='#58a6ff', width=2)))
+            fig.add_trace(go.Scatter(x=rolling_floor.index, y=rolling_floor, name="Quant Buy Floor", line=dict(color='#2ea043', width=1.5, dash='dash')))
+            
+            fig.update_layout(
+                template="plotly_dark", plot_bgcolor="#0d1117", paper_bgcolor="#0d1117",
+                margin=dict(l=10, r=10, t=10, b=10), height=340,
+                xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor="#21262d", tickprefix="₹")
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+with col_news:
+    st.markdown(f"#### 📰 Live Intelligence News Feed: {selected_stock}")
+    try:
+        t_obj = yf.Ticker(STOCK_TICKERS[selected_stock])
+        news_items = t_obj.news[:4]
+        if news_items:
+            for item in news_items:
+                st.markdown(f"🔗 **[{item['title']}]({item['link']})**")
+                st.caption(f"Source: {item.get('publisher', 'Market Feed')}")
+                st.write("")
+        else:
+            st.info("No immediate geopolitical or corporate headlines flagged in exchange server queues.")
+    except:
+        st.info("News feed temporarily buffering. Click sync to re-establish node pipelines.")
+
+st.write("---")
+
+# --- VALIDATION STAMP ---
+current_time = datetime.now().strftime("%d-%b-%Y %I:%M %p")
+st.success(f"🔒 Full Professional Intelligence Suite Synchronized. | Active Node: {current_time}")
