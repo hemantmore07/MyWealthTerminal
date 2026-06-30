@@ -15,7 +15,6 @@ st.set_page_config(
 # --- PREMIUM APPLE CSS INJECTION ---
 st.markdown("""
     <style>
-        /* Global typography & background adjustments */
         @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;600&display=swap');
         
         html, body, [data-testid="stAppViewContainer"] {
@@ -23,7 +22,6 @@ st.markdown("""
             background-color: #000000 !important;
         }
         
-        /* Premium Container Cards */
         .apple-card {
             background: rgba(22, 22, 23, 0.8);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -35,7 +33,6 @@ st.markdown("""
             -webkit-backdrop-filter: blur(20px);
         }
         
-        /* Typography */
         .apple-title {
             font-size: 32px;
             font-weight: 600;
@@ -50,7 +47,6 @@ st.markdown("""
             margin-bottom: 24px;
         }
         
-        /* Interactive Status Metrics badges */
         .badge-green {
             background-color: rgba(52, 199, 89, 0.15);
             color: #30d158;
@@ -176,68 +172,3 @@ if not raw_market_batch.empty:
                             total_touches += 1
                             future_idx = min(i + 3, len(close_prices)-1)
                             if close_prices.iloc[future_idx] > close_prices.iloc[i]:
-                                success_bounces += 1
-                    
-                    if total_touches > 0:
-                        accuracy_pct = round((success_bounces / total_touches) * 100, 1)
-                    else:
-                        accuracy_pct = 80.0
-                    
-                    parsed_list.append({
-                        "Stock": display_name, "Sector": SECTORS.get(display_name, "General"),
-                        "Live Price": current_price, "Quant Floor (Buy)": quant_floor,
-                        "Risk Exit (SL)": stop_loss, "Real RSI (14)": real_rsi, "Engine Verdict": verdict,
-                        "Score Matrix": f"{score_val}/9", "Historical Accuracy": f"{accuracy_pct}%"
-                    })
-        except:
-            pass
-
-df = pd.DataFrame(parsed_list)
-
-# --- SIDEBAR POSITION CALCULATOR ---
-st.sidebar.header("🧮 SYSTEM RISK ACCOUNTANT")
-user_capital = st.sidebar.number_input("Enter Total Available Capital (₹)", min_value=100.0, value=5000.0, step=500.0)
-risk_pct = st.sidebar.slider("Maximum Account Risk Max (%)", min_value=0.5, max_value=5.0, value=2.0, step=0.5)
-
-selected_stock = st.sidebar.selectbox("Select Target Vector Stock", options=list(STOCK_TICKERS.keys()))
-
-if not df.empty and selected_stock in df['Stock'].values:
-    stock_row = df[df['Stock'] == selected_stock].iloc[0]
-    live_p = stock_row['Live Price']
-    sl_p = stock_row['Risk Exit (SL)']
-    
-    allowed_loss = user_capital * (risk_pct / 100.0)
-    risk_per_share = max((live_p - sl_p), 0.01)
-    safe_shares = int(allowed_loss // risk_per_share)
-    total_cost = safe_shares * live_p
-    
-    st.sidebar.info(f"""
-    **Allocation Guidelines for {selected_stock}:**
-    * Max Capital At Risk: ₹{allowed_loss:,.2f}
-    * Risk Per Share Vector: ₹{risk_per_share:,.2f}
-    * **Recommended Purchase Size: {safe_shares} Shares**
-    * Total Order Cost Value: ₹{total_cost:,.2f}
-    """)
-    if total_cost > user_capital:
-        st.sidebar.warning("⚠️ Warning: Total execution cost exceeds available account capital balance.")
-
-# --- MACRO METRICS DISPLAY ---
-macro_col1, macro_col2, macro_col3 = st.columns(3)
-with macro_col1:
-    mood_status = "BULLISH 🐂" if live_nifty_change > 0.2 else ("BEARISH 🐻" if live_nifty_change < -0.2 else "NEUTRAL 😐")
-    st.metric(label="Market Vector Sentiment", value=mood_status, delta=f"{live_nifty_change}% Today")
-with macro_col2:
-    st.metric(label="Volatility Constant (India VIX)", value="13.10", delta="Stable Bounds")
-with macro_col3:
-    st.metric(label="Architecture State", value="🔮 PREDICTIVE MODE", delta="Convergence Engine Live")
-
-# --- MAIN REFRESH TRIGGER ---
-if st.button("🔄 SYNCHRONIZE & RUN MATRIX LOOPS", type="primary", use_container_width=True):
-    st.cache_data.clear()
-    st.rerun()
-
-st.write("---")
-
-# --- 🔮 PREDICTABLE PROFIT INTELLIGENCE PANEL (APPLE STYLED) ---
-st.markdown('<div class="apple-card">', unsafe_allow_html=True)
-st.markdown('<div style="font-size: 20px; font-weight: 600; color: #f5f5f7; margin-bottom: 12px;">🔮
