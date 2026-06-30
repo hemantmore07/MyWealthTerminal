@@ -12,11 +12,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize persistent demo portfolio memory
+# Initialize persistent demo portfolio memory inside session state tracking nodes
 if "demo_portfolio" not in st.session_state:
     st.session_state.demo_portfolio = []
 
-# --- APPLE HEADER BANNER ---
+# --- APPLICATION HEADER BANNER ---
 st.title("🏛️ QUANT SUITE")
 st.caption("Designed by Hemant. Powered by institutional mathematical matrices.")
 
@@ -162,6 +162,8 @@ if not df.empty and selected_stock in df['Stock'].values:
     * **Recommended Purchase Size: {safe_shares} Shares**
     * Total Order Cost Value: ₹{total_cost:,.2f}
     """)
+    if total_cost > user_capital:
+        st.sidebar.warning("⚠️ Warning: Total execution cost exceeds available account capital balance.")
 
 # --- MACRO METRICS DISPLAY ---
 macro_col1, macro_col2, macro_col3 = st.columns(3)
@@ -184,19 +186,24 @@ st.write("---")
 with st.container(border=True):
     st.markdown("### 🔮 Predictable Profit Convergence Engine")
     if not df.empty:
-        predictable_df = df[(df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])) & (df['Real RSI (14)'] <= 45.0)]
+        predictable_df = df[
+            (df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])) & 
+            (df['Real RSI (14)'] <= 45.0)
+        ]
         if not predictable_df.empty:
             st.markdown("##### :green[🔥 CONVERGENCE DETECTED]")
             st.dataframe(predictable_df[['Stock', 'Sector', 'Live Price', 'Quant Floor (Buy)', 'Real RSI (14)', 'Historical Accuracy']], use_container_width=True, hide_index=True)
         else:
             st.markdown("##### :purple[⏳ MONITORING NODE QUEUES]")
             st.caption("No assets currently cross beneath extreme standard deviation bounds. Preserve liquid currency reserves.")
+    else:
+        st.info("No active matrix data to calculate mathematical intersections.")
 
-# --- 🧪 LIVE DEMO PORTFOLIO & EXECUTION SANDBOX ---
+# --- 🧪 REALISTIC SIMULATION SANDBOX ---
 with st.container(border=True):
     st.markdown("### 🧪 REALISTIC SIMULATION SANDBOX")
     
-    # Execution Form Block
+    # Order Form Window Block
     exec_col1, exec_col2, exec_col3 = st.columns([1, 1, 1])
     if not df.empty and selected_stock in df['Stock'].values:
         active_stock_data = df[df['Stock'] == selected_stock].iloc[0]
@@ -220,10 +227,9 @@ with st.container(border=True):
                 st.success(f"Order filled: Bought {sim_qty} shares of {selected_stock}!")
                 st.rerun()
 
-    # Active Live Holdings Display Panel
+    # Active Live Holdings Portfolio Display Panel
     st.markdown("#### 💼 Open Positions Portfolio Ledger")
     if st.session_state.demo_portfolio:
-        portfolio_records = []
         indices_to_drop = []
         
         for index, position in enumerate(st.session_state.demo_portfolio):
@@ -232,13 +238,6 @@ with st.container(border=True):
             total_current_value = current_live_price * position["Quantity"]
             unrealized_pnl = total_current_value - position["Total Outlay"]
             pnl_pct = (unrealized_pnl / position["Total Outlay"]) * 100
-            
-            # Auto liquidation condition flags
-            status_flag = "RUNNING"
-            if current_live_price <= position["Stop Loss"]:
-                status_flag = "🛑 STOP LOSS TRIGGERED"
-            
-            pnl_color = ":green" if unrealized_pnl >= 0 else ":red"
             
             p_col1, p_col2, p_col3, p_col4, p_col5 = st.columns([1, 1, 1, 1.5, 1])
             p_col1.markdown(f"**{ticker}** <br><span style='font-size:11px;color:grey;'>At {position['Timestamp']}</span>", unsafe_allow_html=True)
@@ -260,4 +259,97 @@ with st.container(border=True):
         st.info("No active open portfolio exposures recorded in mock simulation registries.")
 
 # --- DATA MATRIX GRID TABS ---
-st
+st.markdown("### 🖥️ Global System Watchlist Grid")
+tab_all, tab_buy, tab_watch, tab_psych = st.tabs([
+    "📋 Master Engine Matrix", 
+    "🟢 Active Quant Signals", 
+    "🟣 Continuous Monitor",
+    "🧠 Top 1% Execution Rule"
+])
+
+def display_styled_dataframe(dataframe):
+    if dataframe.empty:
+        st.info("No vectors matching parameters currently tracked.")
+        return None
+    return dataframe.style.format({
+        "Live Price": "₹{:,.2f}",
+        "Quant Floor (Buy)": "₹{:,.2f}",
+        "Risk Exit (SL)": "₹{:,.2f}",
+        "Real RSI (14)": "{:.1f}"
+    })
+
+with tab_all:
+    st.dataframe(display_styled_dataframe(df), use_container_width=True, hide_index=True)
+with tab_buy:
+    buy_df = df[df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])]
+    st.dataframe(display_styled_dataframe(buy_df), use_container_width=True, hide_index=True)
+with tab_watch:
+    watch_df = df[df['Engine Verdict'] == "🟣 MONITOR"]
+    st.dataframe(display_styled_dataframe(watch_df), use_container_width=True, hide_index=True)
+
+with tab_psych:
+    with st.container(border=True):
+        st.markdown("### 🧠 The Top 1% Pre-Trade Execution Checklist")
+        st.markdown("Institutional traders do not trade on feeling. Run through this verification protocol before opening any position.")
+        
+        c1, c2 = st.columns(2)
+        with c1:
+            check_math = st.checkbox("🎯 1. Mathematical Alignment: The stock is strictly at the Quant Floor or Near Trigger. I am not chasing green candles.")
+            check_sl = st.checkbox("🛡️ 2. Immutable Stop Loss: My Risk Exit (SL) is locked in. If the market hits this price, I will liquidate with zero arguments.")
+            check_size = st.checkbox("📊 3. Sizing Verification: I have checked the sidebar calculator and will only buy the recommended amount of shares.")
+        with c2:
+            check_boredom = st.checkbox("⏳ 4. Boredom Audit: I am placing this trade because a statistical edge is present, not to seek excitement or entertainment.")
+            check_scaling = st.checkbox("📈 5. Winning Management Strategy: I promise to cut losses short instantly, but let winners run or scale in if the edge works.")
+        
+        if check_math and check_sl and check_size and check_boredom and check_scaling:
+            st.success("🟢 VERIFICATION COMPLETE: You are operating with an institutional 1% framework. Order protocol authorized.")
+        else:
+            st.warning("⚠️ PROTOCOL LOCKED: Please review and check all 5 professional execution rules before initializing an entry.")
+
+st.write("---")
+
+# --- 📊 LIVE CHARTING & HUB COMPONENT ---
+col_chart, col_news = st.columns([2, 1])
+
+with col_chart:
+    st.markdown(f"#### 📊 Technical Data Stream: {selected_stock}")
+    if not raw_market_batch.empty and selected_stock in STOCK_TICKERS:
+        ticker_symbol = STOCK_TICKERS[selected_stock]
+        chart_df = raw_market_batch[ticker_symbol].dropna().tail(30)
+        
+        if not chart_df.empty:
+            rolling_mean = raw_market_batch[ticker_symbol]['Close'].rolling(20).mean()
+            rolling_std = raw_market_batch[ticker_symbol]['Close'].rolling(20).std()
+            rolling_floor = (rolling_mean - (1.5 * rolling_std)).tail(30)
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df['Close'], name="Live Close Price", line=dict(color='#58a6ff', width=2)))
+            fig.add_trace(go.Scatter(x=rolling_floor.index, y=rolling_floor, name="Quant Buy Floor", line=dict(color='#2ea043', width=1.5, dash='dash')))
+            
+            fig.update_layout(
+                template="plotly_dark", plot_bgcolor="#0d1117", paper_bgcolor="#0d1117",
+                margin=dict(l=10, r=10, t=10, b=10), height=340,
+                xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor="#21262d", tickprefix="₹")
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+with col_news:
+    st.markdown(f"#### 📰 Live Intelligence News Feed: {selected_stock}")
+    try:
+        t_obj = yf.Ticker(STOCK_TICKERS[selected_stock])
+        news_items = t_obj.news[:4]
+        if news_items:
+            for item in news_items:
+                st.markdown(f"🔗 **[{item['title']}]({item['link']})**")
+                st.caption(f"Source: {item.get('publisher', 'Market Feed')}")
+                st.write("")
+        else:
+            st.info("No immediate headlines flagged in server queues.")
+    except:
+        st.info("News feed temporarily buffering.")
+
+st.write("---")
+
+# --- VALIDATION STAMP ---
+current_time = datetime.now().strftime("%d-%b-%Y %I:%M %p")
+st.success(f"🔒 Full Professional Intelligence Suite Synchronized. | Active Node: {current_time}")
