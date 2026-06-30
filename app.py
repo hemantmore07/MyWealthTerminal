@@ -12,9 +12,72 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- TITLE & HEADER ---
-st.title("🏛️ HEMANT'S QUANTITATIVE WEALTH TERMINAL")
-st.markdown("### 🖥️ Enterprise-Grade Statistical & Risk Management Framework")
+# --- PREMIUM APPLE CSS INJECTION ---
+st.markdown("""
+    <style>
+        /* Global typography & background adjustments */
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;600&display=swap');
+        
+        html, body, [data-testid="stAppViewContainer"] {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000000 !important;
+        }
+        
+        /* Premium Container Cards */
+        .apple-card {
+            background: rgba(22, 22, 23, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        
+        /* Typography */
+        .apple-title {
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            color: #f5f5f7;
+            margin-bottom: 4px;
+        }
+        .apple-subtitle {
+            font-size: 16px;
+            font-weight: 400;
+            color: #86868b;
+            margin-bottom: 24px;
+        }
+        
+        /* Interactive Status Metrics badges */
+        .badge-green {
+            background-color: rgba(52, 199, 89, 0.15);
+            color: #30d158;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(52, 199, 89, 0.3);
+            display: inline-block;
+        }
+        
+        .badge-purple {
+            background-color: rgba(175, 82, 222, 0.15);
+            color: #bf5af2;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(175, 82, 222, 0.3);
+            display: inline-block;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- APPLE HEADER BANNER ---
+st.markdown('<div class="apple-title">🏛️ QUANT SUITE</div>', unsafe_allow_html=True)
+st.markdown('<div class="apple-subtitle">Designed by Hemant in California & Mumbai. Powered by institutional mathematical matrices.</div>', unsafe_allow_html=True)
 
 # --- 📖 INTEGRATED TERMINOLOGY GLOSSARY ---
 with st.expander("📖 CLICK TO EXPAND: TERMINOLOGY & USAGE GUIDE", expanded=False):
@@ -175,115 +238,6 @@ if st.button("🔄 SYNCHRONIZE & RUN MATRIX LOOPS", type="primary", use_containe
 
 st.write("---")
 
-# --- 🔮 PREDICTABLE PROFIT INTELLIGENCE PANEL ---
-st.markdown("### 🔮 Predictable Profit Convergence Engine")
-if not df.empty:
-    predictable_df = df[
-        (df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])) & 
-        (df['Real RSI (14)'] <= 45.0)
-    ]
-    
-    if not predictable_df.empty:
-        st.success(f"🔥 CONVERGENCE DETECTED: The following {len(predictable_df)} assets match elite institutional entry criteria with high statistical bounce probability.")
-        st.dataframe(predictable_df[['Stock', 'Sector', 'Live Price', 'Quant Floor (Buy)', 'Real RSI (14)', 'Historical Accuracy']], use_container_width=True, hide_index=True)
-    else:
-        st.info("⏳ Scanning Exchange Blocks... No high-probability setups meet both the Quant Floor and RSI Exhaustion requirements right now. Protect your capital and wait.")
-else:
-    st.info("No active matrix data to calculate mathematical intersections.")
-
-st.write("---")
-
-# --- DATA MATRIX GRID TABS ---
-st.markdown("### 🖥️ Global System Watchlist Grid")
-tab_all, tab_buy, tab_watch, tab_psych = st.tabs([
-    "📋 Master Engine Matrix", 
-    "🟢 Active Quant Signals", 
-    "🟣 Continuous Monitor",
-    "🧠 Top 1% Execution Rule"
-])
-
-def display_styled_dataframe(dataframe):
-    if dataframe.empty:
-        st.info("No vectors matching parameters currently tracked.")
-        return None
-    return dataframe.style.format({
-        "Live Price": "₹{:,.2f}",
-        "Quant Floor (Buy)": "₹{:,.2f}",
-        "Risk Exit (SL)": "₹{:,.2f}",
-        "Real RSI (14)": "{:.1f}"
-    })
-
-with tab_all:
-    st.dataframe(display_styled_dataframe(df), use_container_width=True, hide_index=True)
-with tab_buy:
-    buy_df = df[df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])]
-    st.dataframe(display_styled_dataframe(buy_df), use_container_width=True, hide_index=True)
-with tab_watch:
-    watch_df = df[df['Engine Verdict'] == "🟣 MONITOR"]
-    st.dataframe(display_styled_dataframe(watch_df), use_container_width=True, hide_index=True)
-
-with tab_psych:
-    st.markdown("### 🧠 The Top 1% Pre-Trade Execution Checklist")
-    st.markdown("*Institutional traders do not trade on feeling. Run through this verification protocol before opening any position.*")
-    
-    c1, c2 = st.columns(2)
-    with c1:
-        check_math = st.checkbox("🎯 1. Mathematical Alignment: The stock is strictly at the 'Quant Floor' or 'Near Trigger'. I am not chasing green candles.")
-        check_sl = st.checkbox("🛡️ 2. Immutable Stop Loss: My Risk Exit (SL) is locked in. If the market hits this price, I will liquidate with zero arguments.")
-        check_size = st.checkbox("📊 3. Sizing Verification: I have checked the sidebar calculator and will only buy the recommended amount of shares.")
-    with c2:
-        check_boredom = st.checkbox("⏳ 4. Boredom Audit: I am placing this trade because a statistical edge is present, not to seek excitement or entertainment.")
-        check_scaling = st.checkbox("📈 5. Winning Management Strategy: I promise to cut losses short instantly, but let winners run or scale in if the edge works.")
-    
-    if check_math and check_sl and check_size and check_boredom and check_scaling:
-        st.success("🟢 VERIFICATION COMPLETE: You are operating with an institutional 1% framework. Order protocol authorized.")
-    else:
-        st.warning("⚠️ PROTOCOL LOCKED: Please review and check all 5 professional execution rules before initializing an entry.")
-
-st.write("---")
-
-# --- 📊 LIVE CHARTING & NEWS HUB COMPONENT ---
-col_chart, col_news = st.columns([2, 1])
-
-with col_chart:
-    st.markdown(f"#### 📊 Technical Data Stream: {selected_stock}")
-    if not raw_market_batch.empty and selected_stock in STOCK_TICKERS:
-        ticker_symbol = STOCK_TICKERS[selected_stock]
-        chart_df = raw_market_batch[ticker_symbol].dropna().tail(30)
-        
-        if not chart_df.empty:
-            rolling_mean = raw_market_batch[ticker_symbol]['Close'].rolling(20).mean()
-            rolling_std = raw_market_batch[ticker_symbol]['Close'].rolling(20).std()
-            rolling_floor = (rolling_mean - (1.5 * rolling_std)).tail(30)
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df['Close'], name="Live Close Price", line=dict(color='#58a6ff', width=2)))
-            fig.add_trace(go.Scatter(x=rolling_floor.index, y=rolling_floor, name="Quant Buy Floor", line=dict(color='#2ea043', width=1.5, dash='dash')))
-            
-            fig.update_layout(
-                template="plotly_dark", plot_bgcolor="#0d1117", paper_bgcolor="#0d1117",
-                margin=dict(l=10, r=10, t=10, b=10), height=340,
-                xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor="#21262d", tickprefix="₹")
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-with col_news:
-    st.markdown(f"#### 📰 Live Intelligence News Feed: {selected_stock}")
-    try:
-        t_obj = yf.Ticker(STOCK_TICKERS[selected_stock])
-        news_items = t_obj.news[:4]
-        if news_items:
-            for item in news_items:
-                st.markdown(f"🔗 **[{item['title']}]({item['link']})**")
-                st.caption(f"Source: {item.get('publisher', 'Market Feed')}")
-                st.write("")
-        else:
-            st.info("No immediate geopolitical or corporate headlines flagged in exchange server queues.")
-    except:
-        st.info("News feed temporarily buffering. Click sync to re-establish node pipelines.")
-
-st.write("---")
-
-# --- VALIDATION STAMP ---
-current_time = datetime.now().strftime("%d-%b-%Y %I:%M %p")
-st.success(f"🔒 Full Professional Intelligence Suite Synchronized. | Active Node: {current_time}")
+# --- 🔮 PREDICTABLE PROFIT INTELLIGENCE PANEL (APPLE STYLED) ---
+st.markdown('<div class="apple-card">', unsafe_allow_html=True)
+st.markdown('<div style="font-size: 20px; font-weight: 600; color: #f5f5f7; margin-bottom: 12px;">🔮
