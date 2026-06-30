@@ -50,12 +50,10 @@ def execute_advanced_quant_pipeline():
     tickers_list = list(STOCK_TICKERS.values())
     
     try:
-        # Request 60 days of data to provide rich charting, math processing, and backtesting loops
         all_data = yf.download(tickers_list + ["^NSEI"], period="60d", group_by='ticker', progress=False)
     except Exception as e:
-        return {}, 0.0
+        return pd.DataFrame(), 0.0
 
-    # NIFTY 50 Index Status
     try:
         nifty_df = all_data["^NSEI"].dropna()
         if len(nifty_df) >= 2:
@@ -69,11 +67,9 @@ def execute_advanced_quant_pipeline():
         
     return all_data, nifty_change
 
-# Run fast execution block
 with st.spinner("Synchronizing full enterprise mathematical matrices..."):
     raw_market_batch, live_nifty_change = execute_advanced_quant_pipeline()
 
-# Build our working operational dataframe
 parsed_list = []
 if not raw_market_batch.empty:
     for display_name, yahoo_ticker in STOCK_TICKERS.items():
@@ -83,13 +79,11 @@ if not raw_market_batch.empty:
                 close_prices = ticker_df['Close']
                 current_price = round(close_prices.iloc[-1], 2)
                 
-                # Math Indicators
                 sma_20 = close_prices.iloc[-20:].mean()
                 std_20 = close_prices.iloc[-20:].std()
                 quant_floor = round(sma_20 - (1.5 * std_20), 2)
                 stop_loss = round(quant_floor * 0.95, 2)
                 
-                # Deterministic Values for Consistency
                 seed_val = len(display_name)
                 rsi_val = round(38.0 + (seed_val * 3.7) % 28, 1)
                 upside_val = round(12.0 + (seed_val * 5.9) % 22, 1)
@@ -102,7 +96,6 @@ if not raw_market_batch.empty:
                 else:
                     verdict = "🟣 MONITOR"
                 
-                # Simple Historical Backtest Simulator Loop
                 success_bounces = 0
                 total_touches = 0
                 for i in range(20, len(close_prices)-1):
@@ -110,7 +103,6 @@ if not raw_market_batch.empty:
                     hist_floor = hist_window.mean() - (1.5 * hist_window.std())
                     if close_prices.iloc[i] <= hist_floor:
                         total_touches += 1
-                        # Look ahead 3 days to see if price recovered/bounced
                         future_idx = min(i + 3, len(close_prices)-1)
                         if close_prices.iloc[future_idx] > close_prices.iloc[i]:
                             success_bounces += 1
@@ -129,7 +121,7 @@ if not raw_market_batch.empty:
 
 df = pd.DataFrame(parsed_list)
 
-# --- OPTIMIZED SIDEBAR CONFIGURATOR (RISK & POSITION CALCULATOR) ---
+# --- SIDEBAR POSITION CALCULATOR ---
 st.sidebar.header("🧮 SYSTEM RISK ACCOUNTANT")
 user_capital = st.sidebar.number_input("Enter Total Available Capital (₹)", min_value=100.0, value=5000.0, step=500.0)
 risk_pct = st.sidebar.slider("Maximum Account Risk Max (%)", min_value=0.5, max_value=5.0, value=2.0, step=0.5)
@@ -206,20 +198,18 @@ if not raw_market_batch.empty and selected_stock in STOCK_TICKERS:
     chart_df = raw_market_batch[ticker_symbol].dropna().tail(30)
     
     if not chart_df.empty:
-        # Generate rolling lower band to overlay on historical plot line
         rolling_mean = raw_market_batch[ticker_symbol]['Close'].rolling(20).mean()
         rolling_std = raw_market_batch[ticker_symbol]['Close'].rolling(20).std()
         rolling_floor = (rolling_mean - (1.5 * rolling_std)).tail(30)
         
         fig = go.Figure()
-        # Price Trend Path
         fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df['Close'], name="Live Close Price", line=dict(color='#58a6ff', width=2)))
-        # Quant Floor Dynamic Boundary
         fig.add_trace(go.Scatter(x=rolling_floor.index, y=rolling_floor, name="Quant Buy Floor", line=dict(color='#2ea043', width=1.5, dash='dash')))
         
         fig.update_layout(
             template="plotly_dark",
-            background_color="#0d1117",
+            plot_bgcolor="#0d1117",
+            paper_bgcolor="#0d1117",
             margin=dict(l=20, r=20, t=20, b=20),
             height=380,
             xaxis=dict(showgrid=False),
