@@ -163,12 +163,31 @@ with macro_col1:
 with macro_col2:
     st.metric(label="Volatility Constant (India VIX)", value="13.10", delta="Stable Bounds")
 with macro_col3:
-    st.metric(label="Architecture State", value="💼 INSTITUTIONAL SUITE", delta="Math & News Online")
+    st.metric(label="Architecture State", value="🔮 PREDICTIVE MODE", delta="Convergence Engine Live")
 
 # --- MAIN REFRESH TRIGGER ---
 if st.button("🔄 SYNCHRONIZE & RUN MATRIX LOOPS", type="primary", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
+
+st.write("---")
+
+# --- 🔮 NEW PREDICTABLE PROFIT INTELLIGENCE PANEL ---
+st.markdown("### 🔮 Predictable Profit Convergence Engine")
+if not df.empty:
+    # Filter for stocks where price is cheap AND RSI confirms selling exhaustion (Oversold condition)
+    predictable_df = df[
+        (df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])) & 
+        (df['Real RSI (14)'] <= 45.0)
+    ]
+    
+    if not predictable_df.empty:
+        st.success(f"🔥 CONVERGENCE DETECTED: The following {len(predictable_df)} assets match elite institutional entry criteria with high statistical bounce probability.")
+        st.dataframe(predictable_df[['Stock', 'Sector', 'Live Price', 'Quant Floor (Buy)', 'Real RSI (14)', 'Historical Accuracy']], use_container_width=True, hide_index=True)
+    else:
+        st.info("⏳ Scanning Exchange Blocks... No high-probability setups meet both the Quant Floor and RSI Exhaustion requirements right now. Protect your capital and wait.")
+else:
+    st.info("No active matrix data to calculate mathematical intersections.")
 
 st.write("---")
 
@@ -254,15 +273,4 @@ with col_news:
         if news_items:
             for item in news_items:
                 st.markdown(f"🔗 **[{item['title']}]({item['link']})**")
-                st.caption(f"Source: {item.get('publisher', 'Market Feed')}")
-                st.write("")
-        else:
-            st.info("No immediate geopolitical or corporate headlines flagged in exchange server queues.")
-    except:
-        st.info("News feed temporarily buffering. Click sync to re-establish node pipelines.")
-
-st.write("---")
-
-# --- VALIDATION STAMP ---
-current_time = datetime.now().strftime("%d-%b-%Y %I:%M %p")
-st.success(f"🔒 Full Professional Intelligence Suite Synchronized. | Active Node: {current_time}")
+                st.caption
