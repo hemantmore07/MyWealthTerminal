@@ -25,8 +25,12 @@ def load_permanent_portfolio():
     return []
 
 def save_permanent_portfolio(portfolio_list):
-    df_save = pd.DataFrame(portfolio_list)
-    df_save.to_csv(DB_FILE, index=False)
+    if portfolio_list:
+        df_save = pd.DataFrame(portfolio_list)
+        df_save.to_csv(DB_FILE, index=False)
+    else:
+        if os.path.exists(DB_FILE):
+            os.remove(DB_FILE)
 
 # Sync persistent memory storage on startup
 if "demo_portfolio" not in st.session_state:
@@ -63,6 +67,13 @@ SECTORS = {
     "LT": "Infrastructure", "BEL": "Defense/Tech", "HAL": "Defense", "MAZDOCK": "Defense",
     "RELIANCE": "Energy", "COALINDIA": "Energy"
 }
+
+def calculate_rsi(series, periods=14):
+    delta = series.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=periods).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=periods).mean()
+    rs = gain / (loss + 1e-10)
+    return 100 - (100 / (1 + rs))
 
 @st.cache_data(ttl=60)
 def execute_advanced_quant_pipeline():
@@ -151,7 +162,6 @@ st.sidebar.header("🧮 SYSTEM RISK ACCOUNTANT")
 user_capital = st.sidebar.number_input("Enter Total Available Capital (₹)", min_value=100.0, value=100000.0, step=5000.0)
 risk_pct = st.sidebar.slider("Maximum Account Risk Max (%)", min_value=0.5, max_value=5.0, value=2.0, step=0.5)
 
-# Expanded Selector to enable browsing and purchasing of ANY stock in the configuration layout
 selected_stock = st.sidebar.selectbox("Select Target Vector Stock", options=list(STOCK_TICKERS.keys()))
 
 safe_shares = 0
@@ -172,6 +182,8 @@ if not df.empty and selected_stock in df['Stock'].values:
     * **Recommended Purchase Size: {safe_shares} Shares**
     * Total Order Cost Value: ₹{total_cost:,.2f}
     """)
+    if total_cost > user_capital:
+        st.sidebar.warning("⚠️ Warning: Total execution cost exceeds available account capital balance.")
 
 # --- MACRO METRICS DISPLAY ---
 macro_col1, macro_col2, macro_col3 = st.columns(3)
@@ -202,10 +214,9 @@ with st.container(border=True):
             st.markdown("##### :purple[⏳ MONITORING NODE QUEUES]")
             st.caption("No assets currently cross beneath extreme standard deviation bounds. Preserve liquid currency reserves.")
 
-# --- 🧪 LIVE DEMO PORTFOLIO & EXECUTION SANDBOX (WITH HARDWARE CSV PERSISTENCE) ---
+# --- 🧪 LIVE DEMO PORTFOLIO & EXECUTION SANDBOX ---
 with st.container(border=True):
     st.markdown("### 🧪 MULTI-DAY PERMANENT SIMULATION PORTFOLIO")
-    st.markdown(f"Select any stock from the sidebar dropdown list at any time to build your multi-asset mock portfolio.")
     
     # Order Execution Form
     exec_col1, exec_col2, exec_col3 = st.columns([1, 1, 1])
@@ -230,7 +241,7 @@ with st.container(border=True):
                 }
                 st.session_state.demo_portfolio.append(new_trade)
                 save_permanent_portfolio(st.session_state.demo_portfolio)
-                st.success(f"Successfully Added! Portfolio holding record saved permanently for {selected_stock}.")
+                st.success(f"Successfully Added holding record for {selected_stock}.")
                 st.rerun()
 
     # Active Multi-Asset Open Portfolio Ledger
@@ -240,7 +251,6 @@ with st.container(border=True):
         total_portfolio_value = 0.0
         total_portfolio_cost = 0.0
         
-        # Internal loop to calculate summary metrics
         for position in st.session_state.demo_portfolio:
             t = position["Stock"]
             total_portfolio_cost += position["Total Outlay"]
@@ -249,7 +259,6 @@ with st.container(border=True):
         net_portfolio_pnl = total_portfolio_value - total_portfolio_cost
         net_portfolio_pct = (net_portfolio_pnl / total_portfolio_cost * 100) if total_portfolio_cost > 0 else 0.0
         
-        # Display aggregate macro performance metrics
         m_c1, m_c2, m_c3 = st.columns(3)
         m_c1.metric("Total Portfolio Invested Capital", f"₹{total_portfolio_cost:,.2f}")
         m_c2.metric("Current Live Portfolio Value", f"₹{total_portfolio_value:,.2f}")
@@ -281,7 +290,7 @@ with st.container(border=True):
             save_permanent_portfolio(st.session_state.demo_portfolio)
             st.rerun()
     else:
-        st.info("Your multi-day portfolio tracker is currently clean. Select an asset above to start running long-term simulations.")
+        st.info("Your multi-day portfolio tracker is empty. Select an asset to get started.")
 
 # --- DATA MATRIX GRID TABS ---
 st.markdown("### 🖥️ Global System Watchlist Grid")
@@ -290,12 +299,41 @@ tab_all, tab_buy, tab_watch, tab_psych = st.tabs([
 ])
 
 def display_styled_dataframe(dataframe):
-    if dataframe.empty: return None
-    return dataframe.style.format({"Live Price": "₹{:,.2f}", "Quant Floor (Buy)": "₹{:,.2f}", "Risk Exit (SL)": "₹{:,.2f}", "Real RSI (14)": "{:.1f}"})
+    if dataframe.empty:
+        return None
+    return dataframe.style.format({
+        "Live Price": "₹{:,.2f}",
+        "Quant Floor (Buy)": "₹{:,.2f}",
+        "Risk Exit (SL)": "₹{:,.2f}",
+        "Real RSI (14)": "{:.1f}"
+    })
 
-with tab_all: st.dataframe(display_styled_dataframe(df), use_container_width=True, hide_index=True)
-with tab_buy: st.dataframe(display_styled_dataframe(df[df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])]), use_container_width=True, hide_index=True)
-with tab_watch: st.dataframe(display_styled_dataframe(df[df['Engine Verdict'] == "🟣 MONITOR"]), use_container_width=True, hide_index=True)
+with tab_all:
+    if not df.empty:
+        st.dataframe(display_styled_dataframe(df), use_container_width=True, hide_index=True)
+    else:
+        st.info("No master asset records matching pipeline vectors available.")
+
+with tab_buy:
+    if not df.empty:
+        buy_filtered_df = df[df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])]
+        if not buy_filtered_df.empty:
+            st.dataframe(display_styled_dataframe(buy_filtered_df), use_container_width=True, hide_index=True)
+        else:
+            st.info("No active actionable signals triggered right now.")
+    else:
+        st.info("Empty matrix node queues.")
+
+with tab_watch:
+    if not df.empty:
+        watch_filtered_df = df[df['Engine Verdict'] == "🟣 MONITOR"]
+        if not watch_filtered_df.empty:
+            st.dataframe(display_styled_dataframe(watch_filtered_df), use_container_width=True, hide_index=True)
+        else:
+            st.info("No monitor vectors logged.")
+    else:
+        st.info("Empty matrix node queues.")
+
 with tab_psych:
     with st.container(border=True):
         st.markdown("### 🧠 The Top 1% Pre-Trade Execution Checklist")
@@ -323,4 +361,4 @@ with col_chart:
 with col_news:
     st.info("Geopolitical feeds running parallel nodes under sync layout.")
 
-st.success(f"🔒 Hardware Memory Core Online. Portfolio changes will persist across browser closures. Up: {datetime.now().strftime('%d-%b-%Y %I:%M %p')}")
+st.success(f"🔒 Sandbox System Synchronized. Live Node Up: {datetime.now().strftime('%d-%b-%Y %I:%M %p')}")
