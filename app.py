@@ -11,64 +11,16 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- 🎨 CUSTOM INSTUTITIONAL THEME DESIGN (CSS) ---
-st.markdown("""
-    <style>
-    /* Main app background upgrade */
-    .stApp {
-        background-color: #0d1117;
-        color: #c9d1d9;
-    }
-    /* Style main headers */
-    h1 {
-        color: #58a6ff !important;
-        font-family: 'Courier New', Courier, monospace;
-        font-weight: 700;
-        text-shadow: 0 0 10px rgba(88, 166, 255, 0.3);
-    }
-    h3 {
-        color: #8b949e !important;
-        font-family: 'Courier New', Courier, monospace;
-    }
-    /* Style the metrics blocks with glowing card effect */
-    div[data-testid="stMetric"] {
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 10px;
-        padding: 15px 20px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        transition: transform 0.2s;
-    }
-    div[data-testid="stMetric"]:hover {
-        transform: translateY(-2px);
-        border-color: #58a6ff;
-    }
-    /* Style the primary actions */
-    div.stButton > button {
-        background-color: #21262d !important;
-        color: #58a6ff !important;
-        border: 1px solid #30363d !important;
-        font-weight: bold !important;
-        border-radius: 6px !important;
-        width: 100%;
-        letter-spacing: 1px;
-    }
-    div.stButton > button:hover {
-        background-color: #58a6ff !important;
-        color: #0d1117 !important;
-        border-color: #58a6ff !important;
-        box-shadow: 0 0 12px rgba(88, 166, 255, 0.4);
-    }
-    </style>
-""", unsafe_html=True)
-
 # --- TITLE & HEADER ---
 st.title("🏛️ HEMANT'S PRIVATE WEALTH TERMINAL")
+st.markdown("### 🖥️ Institutional Grade Asset Diagnostics")
 
 # --- MAIN REFRESH BUTTON ---
-if st.button("🔄 SYNCHRONIZE LIVE BATCH STREAM", type="secondary"):
+if st.button("🔄 SYNCHRONIZE LIVE BATCH STREAM", type="primary", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
+
+st.write("---")
 
 # --- EXPANDED 15 STOCK WATCHLIST ---
 STOCK_TICKERS = {
@@ -146,25 +98,23 @@ with st.spinner("Decoding encrypted data pipelines from exchange servers..."):
     market_list, live_nifty_change = fetch_fast_market_data()
     df = pd.DataFrame(market_list)
 
-# --- NIFTY 50 MOOD ---
-st.markdown("### 📊 Market Intelligence Core")
+# --- MARKET METRICS CORE ---
 macro_col1, macro_col2, macro_col3 = st.columns(3)
 
 with macro_col1:
     mood_status = "BULLISH 🐂" if live_nifty_change > 0.3 else ("BEARISH 🐻" if live_nifty_change < -0.3 else "NEUTRAL 😐")
-    st.metric(label="System Index Sentiment", value=mood_status, delta=f"{live_nifty_change}% Change")
+    st.metric(label="Market Sentiment Index", value=mood_status, delta=f"{live_nifty_change}% Today")
 
 with macro_col2:
-    st.metric(label="Risk Matrix (India VIX)", value="13.10", delta="-1.2% (Stable Environment)")
+    st.metric(label="Volatility Matrix (India VIX)", value="13.10", delta="-1.2% (Low Risk)")
 
 with macro_col3:
-    st.metric(label="Data Hub Status", value="⚡ PIPELINE ARMED", delta="Latency < 12ms")
+    st.metric(label="Data Hub Connection Status", value="⚡ PIPELINE ONLINE", delta="Healthy Latency")
 
 st.write("---")
 
 # --- WATCHLIST TABS ---
-st.markdown("### 🖥️ Asset Vector Grid")
-tab_all, tab_buy, tab_watch = st.tabs(["📋 Complete Matrix (15)", "🟢 Buy Trigger Confirmed", "🟣 Observation Watch"])
+tab_all, tab_buy, tab_watch = st.tabs(["📋 Complete Asset Matrix", "🟢 Institutional Buy Triggered", "🟣 Observation Watchlist"])
 
 def display_styled_dataframe(dataframe):
     if dataframe.empty:
