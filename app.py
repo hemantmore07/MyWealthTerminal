@@ -162,11 +162,11 @@ st.sidebar.header("🧮 SYSTEM RISK ACCOUNTANT")
 user_capital = st.sidebar.number_input("Enter Total Available Capital (₹)", min_value=100.0, value=100000.0, step=5000.0)
 risk_pct = st.sidebar.slider("Maximum Account Risk Max (%)", min_value=0.5, max_value=5.0, value=2.0, step=0.5)
 
-selected_stock = st.sidebar.selectbox("Select Target Vector Stock", options=list(STOCK_TICKERS.keys()))
+selected_stock_sidebar = st.sidebar.selectbox("Select Target Vector Stock (Sidebar Analysis)", options=list(STOCK_TICKERS.keys()))
 
 safe_shares = 0
-if not df.empty and selected_stock in df['Stock'].values:
-    stock_row = df[df['Stock'] == selected_stock].iloc[0]
+if not df.empty and selected_stock_sidebar in df['Stock'].values:
+    stock_row = df[df['Stock'] == selected_stock_sidebar].iloc[0]
     live_p = stock_row['Live Price']
     sl_p = stock_row['Risk Exit (SL)']
     
@@ -176,7 +176,7 @@ if not df.empty and selected_stock in df['Stock'].values:
     total_cost = safe_shares * live_p
     
     st.sidebar.info(f"""
-    **Allocation Guidelines for {selected_stock}:**
+    **Allocation Guidelines for {selected_stock_sidebar}:**
     * Max Capital At Risk: ₹{allowed_loss:,.2f}
     * Risk Per Share Vector: ₹{risk_per_share:,.2f}
     * **Recommended Purchase Size: {safe_shares} Shares**
@@ -218,20 +218,28 @@ with st.container(border=True):
 with st.container(border=True):
     st.markdown("### 🧪 MULTI-DAY PERMANENT SIMULATION PORTFOLIO")
     
-    # Order Execution Form
-    exec_col1, exec_col2, exec_col3 = st.columns([1, 1, 1])
-    if not df.empty and selected_stock in df['Stock'].values:
-        active_stock_data = df[df['Stock'] == selected_stock].iloc[0]
+    # Order Execution Form with Direct Asset Selector Option Inside
+    exec_col1, exec_col2, exec_col3, exec_col4 = st.columns([1.2, 1, 1, 1])
+    
+    with exec_col1:
+        portfolio_stock_select = st.selectbox("Select Stock to Buy", options=list(STOCK_TICKERS.keys()), key="portfolio_asset_picker")
         
-        with exec_col1:
-            sim_price = st.number_input("Execution Entry Price (₹)", value=float(active_stock_data['Live Price']), step=0.5)
+    if not df.empty and portfolio_stock_select in df['Stock'].values:
+        active_stock_data = df[df['Stock'] == portfolio_stock_select].iloc[0]
+        
         with exec_col2:
-            sim_qty = st.number_input("Execution Order Quantity", min_value=1, value=max(1, safe_shares), step=1)
+            sim_price = st.number_input("Execution Entry Price (₹)", value=float(active_stock_data['Live Price']), step=0.5, key="portfolio_price_input")
         with exec_col3:
+            # Sizing calculation based on selection context
+            allowed_loss = user_capital * (risk_pct / 100.0)
+            risk_per_share = max((float(active_stock_data['Live Price']) - float(active_stock_data['Risk Exit (SL)'])), 0.01)
+            calculated_shares = max(int(allowed_loss // risk_per_share), 1)
+            sim_qty = st.number_input("Execution Order Quantity", min_value=1, value=calculated_shares, step=1, key="portfolio_qty_input")
+        with exec_col4:
             st.write("##")
-            if st.button("🚀 Add Asset to Portfolio", use_container_width=True, type="secondary"):
+            if st.button("🚀 Add Asset to Portfolio", use_container_width=True, type="primary"):
                 new_trade = {
-                    "Stock": selected_stock,
+                    "Stock": portfolio_stock_select,
                     "Date": datetime.now().strftime("%d-%b-%Y"),
                     "Timestamp": datetime.now().strftime("%H:%M:%S"),
                     "Entry Price": float(sim_price),
@@ -241,7 +249,7 @@ with st.container(border=True):
                 }
                 st.session_state.demo_portfolio.append(new_trade)
                 save_permanent_portfolio(st.session_state.demo_portfolio)
-                st.success(f"Successfully Added holding record for {selected_stock}.")
+                st.success(f"Successfully Added holding record for {portfolio_stock_select}!")
                 st.rerun()
 
     # Active Multi-Asset Open Portfolio Ledger
@@ -290,7 +298,7 @@ with st.container(border=True):
             save_permanent_portfolio(st.session_state.demo_portfolio)
             st.rerun()
     else:
-        st.info("Your multi-day portfolio tracker is empty. Select an asset to get started.")
+        st.info("Your multi-day portfolio tracker is empty. Select an asset above to build a custom portfolio layout.")
 
 # --- DATA MATRIX GRID TABS ---
 st.markdown("### 🖥️ Global System Watchlist Grid")
@@ -349,16 +357,10 @@ with tab_psych:
 st.write("---")
 col_chart, col_news = st.columns([2, 1])
 with col_chart:
-    if not raw_market_batch.empty and selected_stock in STOCK_TICKERS:
-        chart_df = raw_market_batch[STOCK_TICKERS[selected_stock]].dropna().tail(30)
+    if not raw_market_batch.empty and portfolio_stock_select in STOCK_TICKERS:
+        chart_df = raw_market_batch[STOCK_TICKERS[portfolio_stock_select]].dropna().tail(30)
         if not chart_df.empty:
-            rf = (raw_market_batch[STOCK_TICKERS[selected_stock]]['Close'].rolling(20).mean() - (1.5 * raw_market_batch[STOCK_TICKERS[selected_stock]]['Close'].rolling(20).std())).tail(30)
+            rf = (raw_market_batch[STOCK_TICKERS[portfolio_stock_select]]['Close'].rolling(20).mean() - (1.5 * raw_market_batch[STOCK_TICKERS[portfolio_stock_select]]['Close'].rolling(20).std())).tail(30)
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df['Close'], name="Live Close Price", line=dict(color='#58a6ff', width=2)))
-            fig.add_trace(go.Scatter(x=rf.index, y=rf, name="Quant Buy Floor", line=dict(color='#2ea043', width=1.5, dash='dash')))
-            fig.update_layout(template="plotly_dark", plot_bgcolor="#0d1117", paper_bgcolor="#0d1117", margin=dict(l=10, r=10, t=10, b=10), height=300)
-            st.plotly_chart(fig, use_container_width=True)
-with col_news:
-    st.info("Geopolitical feeds running parallel nodes under sync layout.")
-
-st.success(f"🔒 Sandbox System Synchronized. Live Node Up: {datetime.now().strftime('%d-%b-%Y %I:%M %p')}")
+            fig
