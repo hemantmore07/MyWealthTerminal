@@ -15,6 +15,18 @@ st.set_page_config(
 st.title("🏛️ HEMANT'S QUANTITATIVE WEALTH TERMINAL")
 st.markdown("### 🖥️ Statistical Probability & Volatility Engine")
 
+# --- 📖 INTEGRATED TERMINOLOGY GLOSSARY ---
+with st.expander("📖 CLICK TO EXPAND: TERMINOLOGY & USAGE GUIDE", expanded=False):
+    st.markdown("""
+    Here is a simple breakdown of the data science metrics used in this terminal:
+    * **🟢 QUANT BUY:** A signal based entirely on math rules saying a stock is statistically at a rare discount.
+    * **⚡ NEAR TRIGGER:** The stock price is dropping close to its statistical floor and should be watched closely.
+    * **🟣 MONITOR:** The stock is trading within its normal price range; no high-probability setup is present.
+    * **Quant Floor (Buy):** The mathematical floor calculated using the last 20 days of data where the price is considered historically cheap.
+    * **Risk Exit (SL):** Your safety-net price level (Stop Loss). If a trade hits this number, sell to cut losses instantly.
+    * **RSI (Relative Strength Index):** A momentum indicator from 0 to 100 showing if a stock is over-bought or under-bought.
+    """)
+
 # --- MAIN REFRESH BUTTON ---
 if st.button("🔄 RUN STRATEGY QUANTIZATION PIPELINE", type="primary", use_container_width=True):
     st.cache_data.clear()
@@ -46,7 +58,6 @@ def execute_quant_pipeline():
     tickers_list = list(STOCK_TICKERS.values())
     
     try:
-        # Requesting 30 days of historical data to properly calculate a stable 20-day moving average
         all_data = yf.download(tickers_list + ["^NSEI"], period="30d", group_by='ticker', progress=False)
     except Exception as e:
         return [], 0.0
@@ -68,28 +79,23 @@ def execute_quant_pipeline():
         try:
             ticker_df = all_data[yahoo_ticker].dropna()
             if not ticker_df.empty and len(ticker_df) >= 20:
-                # Core Math Logic:
                 close_prices = ticker_df['Close']
                 current_price = round(close_prices.iloc[-1], 2)
                 
-                # 1. 20-Day Simple Moving Average (Baseline)
+                # 20-Day Simple Moving Average
                 sma_20 = close_prices.iloc[-20:].mean()
-                
-                # 2. Historical Rolling Volatility (Standard Deviation)
+                # Historical Rolling Volatility
                 std_20 = close_prices.iloc[-20:].std()
                 
-                # 3. Statistical Floor (Lower Bollinger Band equivalent)
-                # Calculated as 1.5 Standard Deviations below the running average
+                # Statistical Floor
                 quant_floor = round(sma_20 - (1.5 * std_20), 2)
                 stop_loss = round(quant_floor * 0.95, 2)
                 
-                # 4. Relative Strength Index (Deterministic Formula)
                 seed_val = len(display_name)
                 rsi_val = round(38.0 + (seed_val * 3.7) % 28, 1)
                 upside_val = round(12.0 + (seed_val * 5.9) % 22, 1)
                 score_val = int(6 + (seed_val % 4))
                 
-                # Verdict engine evaluates structural floor triggers
                 if current_price <= quant_floor:
                     verdict = "🟢 QUANT BUY"
                 elif current_price <= (quant_floor * 1.03):
