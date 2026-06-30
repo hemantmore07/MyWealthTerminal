@@ -44,20 +44,17 @@ SECTORS = {
     "RELIANCE": "Energy", "COALINDIA": "Energy"
 }
 
-# --- REAL RSI CALCULATION FUNCTION ---
 def calculate_rsi(series, periods=14):
     delta = series.diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=periods).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=periods).mean()
-    rs = gain / (loss + 1e-10) # Avoid division by zero
+    rs = gain / (loss + 1e-10)
     return 100 - (100 / (1 + rs))
 
-# --- QUANT MATHEMATICAL ENGINE & DATA SOURCE ---
 @st.cache_data(ttl=60)
 def execute_advanced_quant_pipeline():
     tickers_list = list(STOCK_TICKERS.values())
     try:
-        # Requesting 60 days to correctly populate moving averages and 14-day rolling RSI
         all_data = yf.download(tickers_list + ["^NSEI"], period="60d", group_by='ticker', progress=False)
         return all_data
     except Exception as e:
@@ -66,7 +63,6 @@ def execute_advanced_quant_pipeline():
 with st.spinner("Synchronizing full enterprise mathematical matrices..."):
     raw_market_batch = execute_advanced_quant_pipeline()
 
-# Get Nifty movement safely
 live_nifty_change = 0.0
 if not raw_market_batch.empty and "^NSEI" in raw_market_batch.columns.levels[0]:
     try:
@@ -88,17 +84,14 @@ if not raw_market_batch.empty:
                     close_prices = ticker_df['Close']
                     current_price = round(close_prices.iloc[-1], 2)
                     
-                    # Math Indicators
                     sma_20 = close_prices.iloc[-20:].mean()
                     std_20 = close_prices.iloc[-20:].std()
                     quant_floor = round(sma_20 - (1.5 * std_20), 2)
                     stop_loss = round(quant_floor * 0.95, 2)
                     
-                    # Real Mathematical RSI Execution
                     rsi_series = calculate_rsi(close_prices, 14)
                     real_rsi = round(rsi_series.iloc[-1], 1) if not pd.isna(rsi_series.iloc[-1]) else 50.0
                     
-                    # Set score based on technical layout
                     score_val = 5
                     if real_rsi < 40: score_val += 1
                     if current_price < sma_20: score_val += 1
@@ -111,7 +104,6 @@ if not raw_market_batch.empty:
                     else:
                         verdict = "🟣 MONITOR"
                     
-                    # Historical Backtest Simulator Loop
                     success_bounces = 0
                     total_touches = 0
                     for i in range(20, len(close_prices)-1):
@@ -182,7 +174,12 @@ st.write("---")
 
 # --- DATA MATRIX GRID TABS ---
 st.markdown("### 🖥️ Global System Watchlist Grid")
-tab_all, tab_buy, tab_watch = st.tabs(["📋 Master Engine Matrix", "🟢 Active Quant Signals", "🟣 Continuous Monitor"])
+tab_all, tab_buy, tab_watch, tab_psych = st.tabs([
+    "📋 Master Engine Matrix", 
+    "🟢 Active Quant Signals", 
+    "🟣 Continuous Monitor",
+    "🧠 Top 1% Execution Rule"
+])
 
 def display_styled_dataframe(dataframe):
     if dataframe.empty:
@@ -204,48 +201,23 @@ with tab_watch:
     watch_df = df[df['Engine Verdict'] == "🟣 MONITOR"]
     st.dataframe(display_styled_dataframe(watch_df), use_container_width=True, hide_index=True)
 
-st.write("---")
+# --- NEW PSYCHOLOGY RULES TAB ---
+with tab_psych:
+    st.markdown("### 🧠 The Top 1% Pre-Trade Execution Checklist")
+    st.markdown("*Institutional traders do not trade on feeling. Run through this verification protocol before opening any position.*")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        check_math = st.checkbox("🎯 1. Mathematical Alignment: The stock is strictly at the 'Quant Floor' or 'Near Trigger'. I am not chasing green candles.")
+        check_sl = st.checkbox("🛡️ 2. Immutable Stop Loss: My Risk Exit (SL) is locked in. If the market hits this price, I will liquidate with zero arguments.")
+        check_size = st.checkbox("📊 3. Sizing Verification: I have checked the sidebar calculator and will only buy the recommended amount of shares.")
+    with c2:
+        check_boredom = st.checkbox("⏳ 4. Boredom Audit: I am placing this trade because a statistical edge is present, not to seek excitement or entertainment.")
+        check_scaling = st.checkbox("📈 5. Winning Management Strategy: I promise to cut losses short instantly, but let winners run or scale in if the edge works.")
+    
+    if check_math and check_sl and check_size and check_boredom and check_scaling:
+        st.success("🟢 VERIFICATION COMPLETE: You are operating with an institutional 1% framework. Order protocol authorized.")
+    else:
+        st.warning("⚠️ PROTOCOL LOCKED: Please review and check all 5 professional execution rules before initializing an entry.")
 
-# --- 📊 LIVE CHARTING & NEWS HUB COMPONENT ---
-col_chart, col_news = st.columns([2, 1])
-
-with col_chart:
-    st.markdown(f"#### 📊 Technical Data Stream: {selected_stock}")
-    if not raw_market_batch.empty and selected_stock in STOCK_TICKERS:
-        ticker_symbol = STOCK_TICKERS[selected_stock]
-        chart_df = raw_market_batch[ticker_symbol].dropna().tail(30)
-        
-        if not chart_df.empty:
-            rolling_mean = raw_market_batch[ticker_symbol]['Close'].rolling(20).mean()
-            rolling_std = raw_market_batch[ticker_symbol]['Close'].rolling(20).std()
-            rolling_floor = (rolling_mean - (1.5 * rolling_std)).tail(30)
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df['Close'], name="Live Close Price", line=dict(color='#58a6ff', width=2)))
-            fig.add_trace(go.Scatter(x=rolling_floor.index, y=rolling_floor, name="Quant Buy Floor", line=dict(color='#2ea043', width=1.5, dash='dash')))
-            
-            fig.update_layout(
-                template="plotly_dark", plot_bgcolor="#0d1117", paper_bgcolor="#0d1117",
-                margin=dict(l=10, r=10, t=10, b=10), height=340,
-                xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor="#21262d", tickprefix="₹")
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-with col_news:
-    st.markdown(f"#### 📰 Live Intelligence News Feed: {selected_stock}")
-    try:
-        t_obj = yf.Ticker(STOCK_TICKERS[selected_stock])
-        news_items = t_obj.news[:4] # Grab top 4 breaking headlines
-        if news_items:
-            for item in news_items:
-                st.markdown(f"🔗 **[{item['title']}]({item['link']})**")
-                st.caption(f"Source: {item.get('publisher', 'Market Feed')}")
-                st.write("")
-        else:
-            st.info("No immediate geopolitical or corporate headlines flagged in exchange server queues.")
-    except:
-        st.info("News feed temporarily buffering. Click sync to re-establish node pipelines.")
-
-# --- VALIDATION STAMP ---
-current_time = datetime.now().strftime("%d-%b-%Y %I:%M %p")
-st.success(f"🔒 Full Professional Intelligence Suite Synchronized. | Active Node: {current_time}")
+st.write("---
