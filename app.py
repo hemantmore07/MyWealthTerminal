@@ -12,6 +12,10 @@ st.set_page_config(
     layout="wide"
 )
 
+# Initialize persistent demo portfolio memory
+if "demo_portfolio" not in st.session_state:
+    st.session_state.demo_portfolio = []
+
 # --- APPLE HEADER BANNER ---
 st.title("🏛️ QUANT SUITE")
 st.caption("Designed by Hemant. Powered by institutional mathematical matrices.")
@@ -75,6 +79,7 @@ if not raw_market_batch.empty and "^NSEI" in raw_market_batch.columns.levels[0]:
         pass
 
 parsed_list = []
+live_price_map = {}
 if not raw_market_batch.empty:
     for display_name, yahoo_ticker in STOCK_TICKERS.items():
         try:
@@ -83,6 +88,7 @@ if not raw_market_batch.empty:
                 if len(ticker_df) >= 20:
                     close_prices = ticker_df['Close']
                     current_price = round(close_prices.iloc[-1], 2)
+                    live_price_map[display_name] = current_price
                     
                     sma_20 = close_prices.iloc[-20:].mean()
                     std_20 = close_prices.iloc[-20:].std()
@@ -133,11 +139,12 @@ df = pd.DataFrame(parsed_list)
 
 # --- SIDEBAR POSITION CALCULATOR ---
 st.sidebar.header("🧮 SYSTEM RISK ACCOUNTANT")
-user_capital = st.sidebar.number_input("Enter Total Available Capital (₹)", min_value=100.0, value=5000.0, step=500.0)
+user_capital = st.sidebar.number_input("Enter Total Available Capital (₹)", min_value=100.0, value=100000.0, step=5000.0)
 risk_pct = st.sidebar.slider("Maximum Account Risk Max (%)", min_value=0.5, max_value=5.0, value=2.0, step=0.5)
 
 selected_stock = st.sidebar.selectbox("Select Target Vector Stock", options=list(STOCK_TICKERS.keys()))
 
+safe_shares = 0
 if not df.empty and selected_stock in df['Stock'].values:
     stock_row = df[df['Stock'] == selected_stock].iloc[0]
     live_p = stock_row['Live Price']
@@ -155,8 +162,6 @@ if not df.empty and selected_stock in df['Stock'].values:
     * **Recommended Purchase Size: {safe_shares} Shares**
     * Total Order Cost Value: ₹{total_cost:,.2f}
     """)
-    if total_cost > user_capital:
-        st.sidebar.warning("⚠️ Warning: Total execution cost exceeds available account capital balance.")
 
 # --- MACRO METRICS DISPLAY ---
 macro_col1, macro_col2, macro_col3 = st.columns(3)
@@ -178,114 +183,81 @@ st.write("---")
 # --- 🔮 PREDICTABLE PROFIT INTELLIGENCE PANEL ---
 with st.container(border=True):
     st.markdown("### 🔮 Predictable Profit Convergence Engine")
-    
     if not df.empty:
-        predictable_df = df[
-            (df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])) & 
-            (df['Real RSI (14)'] <= 45.0)
-        ]
-        
+        predictable_df = df[(df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])) & (df['Real RSI (14)'] <= 45.0)]
         if not predictable_df.empty:
             st.markdown("##### :green[🔥 CONVERGENCE DETECTED]")
             st.dataframe(predictable_df[['Stock', 'Sector', 'Live Price', 'Quant Floor (Buy)', 'Real RSI (14)', 'Historical Accuracy']], use_container_width=True, hide_index=True)
         else:
             st.markdown("##### :purple[⏳ MONITORING NODE QUEUES]")
             st.caption("No assets currently cross beneath extreme standard deviation bounds. Preserve liquid currency reserves.")
+
+# --- 🧪 LIVE DEMO PORTFOLIO & EXECUTION SANDBOX ---
+with st.container(border=True):
+    st.markdown("### 🧪 REALISTIC SIMULATION SANDBOX")
+    
+    # Execution Form Block
+    exec_col1, exec_col2, exec_col3 = st.columns([1, 1, 1])
+    if not df.empty and selected_stock in df['Stock'].values:
+        active_stock_data = df[df['Stock'] == selected_stock].iloc[0]
+        
+        with exec_col1:
+            sim_price = st.number_input("Execution Entry Price (₹)", value=float(active_stock_data['Live Price']), step=0.5)
+        with exec_col2:
+            sim_qty = st.number_input("Execution Order Quantity", min_value=1, value=max(1, safe_shares), step=1)
+        with exec_col3:
+            st.write("##")
+            if st.button("🚀 Execute Demo Buy Order", use_container_width=True, type="secondary"):
+                new_trade = {
+                    "Stock": selected_stock,
+                    "Timestamp": datetime.now().strftime("%H:%M:%S"),
+                    "Entry Price": sim_price,
+                    "Quantity": sim_qty,
+                    "Total Outlay": sim_price * sim_qty,
+                    "Stop Loss": float(active_stock_data['Risk Exit (SL)'])
+                }
+                st.session_state.demo_portfolio.append(new_trade)
+                st.success(f"Order filled: Bought {sim_qty} shares of {selected_stock}!")
+                st.rerun()
+
+    # Active Live Holdings Display Panel
+    st.markdown("#### 💼 Open Positions Portfolio Ledger")
+    if st.session_state.demo_portfolio:
+        portfolio_records = []
+        indices_to_drop = []
+        
+        for index, position in enumerate(st.session_state.demo_portfolio):
+            ticker = position["Stock"]
+            current_live_price = live_price_map.get(ticker, position["Entry Price"])
+            total_current_value = current_live_price * position["Quantity"]
+            unrealized_pnl = total_current_value - position["Total Outlay"]
+            pnl_pct = (unrealized_pnl / position["Total Outlay"]) * 100
+            
+            # Auto liquidation condition flags
+            status_flag = "RUNNING"
+            if current_live_price <= position["Stop Loss"]:
+                status_flag = "🛑 STOP LOSS TRIGGERED"
+            
+            pnl_color = ":green" if unrealized_pnl >= 0 else ":red"
+            
+            p_col1, p_col2, p_col3, p_col4, p_col5 = st.columns([1, 1, 1, 1.5, 1])
+            p_col1.markdown(f"**{ticker}** <br><span style='font-size:11px;color:grey;'>At {position['Timestamp']}</span>", unsafe_allow_html=True)
+            p_col2.metric("Size & Cost", f"{position['Quantity']} Shrs", f"₹{position['Total Outlay']:,.2f}", delta_color="off")
+            p_col3.metric("Live Price", f"₹{current_live_price:,.2f}", f"Entry: ₹{position['Entry Price']:,.2f}", delta_color="off")
+            p_col4.metric("Unrealized P&L", f"₹{unrealized_pnl:,.2f}", f"{pnl_pct:+.2f}%", delta_color="normal")
+            
+            with p_col5:
+                st.write("")
+                if st.button("🔄 Square Off", key=f"exit_{index}", use_container_width=True):
+                    indices_to_drop.append(index)
+                    st.toast(f"Liquidated position in {ticker} at live market price.")
+        
+        if indices_to_drop:
+            for idx in sorted(indices_to_drop, reverse=True):
+                st.session_state.demo_portfolio.pop(idx)
+            st.rerun()
     else:
-        st.info("No active matrix data to calculate mathematical intersections.")
+        st.info("No active open portfolio exposures recorded in mock simulation registries.")
 
 # --- DATA MATRIX GRID TABS ---
-st.markdown("### 🖥️ Global System Watchlist Grid")
-tab_all, tab_buy, tab_watch, tab_psych = st.tabs([
-    "📋 Master Engine Matrix", 
-    "🟢 Active Quant Signals", 
-    "🟣 Continuous Monitor",
-    "🧠 Top 1% Execution Rule"
-])
-
-def display_styled_dataframe(dataframe):
-    if dataframe.empty:
-        st.info("No vectors matching parameters currently tracked.")
-        return None
-    return dataframe.style.format({
-        "Live Price": "₹{:,.2f}",
-        "Quant Floor (Buy)": "₹{:,.2f}",
-        "Risk Exit (SL)": "₹{:,.2f}",
-        "Real RSI (14)": "{:.1f}"
-    })
-
-with tab_all:
-    st.dataframe(display_styled_dataframe(df), use_container_width=True, hide_index=True)
-with tab_buy:
-    buy_df = df[df['Engine Verdict'].isin(["🟢 QUANT BUY", "⚡ NEAR TRIGGER"])]
-    st.dataframe(display_styled_dataframe(buy_df), use_container_width=True, hide_index=True)
-with tab_watch:
-    watch_df = df[df['Engine Verdict'] == "🟣 MONITOR"]
-    st.dataframe(display_styled_dataframe(watch_df), use_container_width=True, hide_index=True)
-
-with tab_psych:
-    with st.container(border=True):
-        st.markdown("### 🧠 The Top 1% Pre-Trade Execution Checklist")
-        st.markdown("Institutional traders do not trade on feeling. Run through this verification protocol before opening any position.")
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            check_math = st.checkbox("🎯 1. Mathematical Alignment: The stock is strictly at the Quant Floor or Near Trigger. I am not chasing green candles.")
-            check_sl = st.checkbox("🛡️ 2. Immutable Stop Loss: My Risk Exit (SL) is locked in. If the market hits this price, I will liquidate with zero arguments.")
-            check_size = st.checkbox("📊 3. Sizing Verification: I have checked the sidebar calculator and will only buy the recommended amount of shares.")
-        with c2:
-            check_boredom = st.checkbox("⏳ 4. Boredom Audit: I am placing this trade because a statistical edge is present, not to seek excitement or entertainment.")
-            check_scaling = st.checkbox("📈 5. Winning Management Strategy: I promise to cut losses short instantly, but let winners run or scale in if the edge works.")
-        
-        if check_math and check_sl and check_size and check_boredom and check_scaling:
-            st.success("🟢 VERIFICATION COMPLETE: You are operating with an institutional 1% framework. Order protocol authorized.")
-        else:
-            st.warning("⚠️ PROTOCOL LOCKED: Please review and check all 5 professional execution rules before initializing an entry.")
-
-st.write("---")
-
-# --- 📊 LIVE CHARTING & NEWS HUB COMPONENT ---
-col_chart, col_news = st.columns([2, 1])
-
-with col_chart:
-    st.markdown(f"#### 📊 Technical Data Stream: {selected_stock}")
-    if not raw_market_batch.empty and selected_stock in STOCK_TICKERS:
-        ticker_symbol = STOCK_TICKERS[selected_stock]
-        chart_df = raw_market_batch[ticker_symbol].dropna().tail(30)
-        
-        if not chart_df.empty:
-            rolling_mean = raw_market_batch[ticker_symbol]['Close'].rolling(20).mean()
-            rolling_std = raw_market_batch[ticker_symbol]['Close'].rolling(20).std()
-            rolling_floor = (rolling_mean - (1.5 * rolling_std)).tail(30)
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df['Close'], name="Live Close Price", line=dict(color='#58a6ff', width=2)))
-            fig.add_trace(go.Scatter(x=rolling_floor.index, y=rolling_floor, name="Quant Buy Floor", line=dict(color='#2ea043', width=1.5, dash='dash')))
-            
-            fig.update_layout(
-                template="plotly_dark", plot_bgcolor="#0d1117", paper_bgcolor="#0d1117",
-                margin=dict(l=10, r=10, t=10, b=10), height=340,
-                xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor="#21262d", tickprefix="₹")
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-with col_news:
-    st.markdown(f"#### 📰 Live Intelligence News Feed: {selected_stock}")
-    try:
-        t_obj = yf.Ticker(STOCK_TICKERS[selected_stock])
-        news_items = t_obj.news[:4]
-        if news_items:
-            for item in news_items:
-                st.markdown(f"🔗 **[{item['title']}]({item['link']})**")
-                st.caption(f"Source: {item.get('publisher', 'Market Feed')}")
-                st.write("")
-        else:
-            st.info("No immediate headlines flagged in server queues.")
-    except:
-        st.info("News feed temporarily buffering.")
-
-st.write("---")
-
-# --- VALIDATION STAMP ---
-current_time = datetime.now().strftime("%d-%b-%Y %I:%M %p")
-st.success(f"🔒 Full Professional Intelligence Suite Synchronized. | Active Node: {current_time}")
+st
